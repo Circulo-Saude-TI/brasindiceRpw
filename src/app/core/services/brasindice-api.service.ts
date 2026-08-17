@@ -47,31 +47,19 @@ export class BrasindiceApiService {
       .pipe(map((response) => this.extractCollection<TabelaPreco>(response, 'tabelas')));
   }
 
+  // Endpoint nativo do TOTVS RPW (o mesmo usado pela tela "Relatório de Pedidos" /
+  // html.rpw-orderMaintenanceReport para listar servidores de execução) - não faz
+  // parte do rest/api/v1/brasindice.p, é um Business Entity padrão do produto.
   getServidoresRpw(): Observable<ServidorRpw[]> {
     return this.http
-      .get<
-        | { servidores?: ServidorRpw[]; Servidores?: ServidorRpw[]; items?: ServidorRpw[] }
-        | ServidorRpw[]
-      >(`${this.baseUrl}/servidores-rpw`)
+      .get<{ total?: number; hasNext?: boolean; items?: { code: string; name: string }[] }>(
+        '/api/btb/v1/servidoresExecucao',
+        { params: { page: 1, pageSize: 999, filter: '', fields: '', expand: '', order: '' } }
+      )
       .pipe(
-        map((response) => {
-          if (Array.isArray(response)) {
-            return response as ServidorRpw[];
-          }
-
-          if (response && typeof response === 'object') {
-            const collection =
-              response.servidores ??
-              response.Servidores ??
-              response.items;
-
-            if (Array.isArray(collection)) {
-              return collection;
-            }
-          }
-
-          return [];
-        }),
+        map((response) =>
+          (response.items ?? []).map((item) => ({ codigo: item.code, descricao: item.name }))
+        ),
         catchError(() => of([]))
       );
   }
