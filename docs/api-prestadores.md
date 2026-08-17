@@ -1,4 +1,4 @@
-# Endpoint `GET /api/v1/brasindice/prestadores`
+# Endpoint `GET /api/rest/v1/brasindice/prestadores`
 
 Necessário para a tela "Importação Brasíndice x Prestador" (equivalente ao programa GPS
 `gp/dep/ImportaBrasPrestador.p`, procedure `seleciona-prestadores`).
@@ -6,7 +6,7 @@ Necessário para a tela "Importação Brasíndice x Prestador" (equivalente ao p
 ## Requisição
 
 ```
-GET /api/v1/brasindice/prestadores
+GET /api/rest/v1/brasindice/prestadores
 ```
 
 ## Resposta esperada
@@ -32,7 +32,7 @@ for each depresfat no-lock:
        nome           = preserv.nm-prestador
 ```
 
-## Alterações no `POST /api/v1/brasindice/importar`
+## Alterações no `POST /api/rest/v1/brasindice/importar`
 
 O body passa a incluir:
 
@@ -63,12 +63,14 @@ por `rest/api/v1/paramConexaoTasy.p` e `rest/api/v1/integraNotasEntrada.p`). Rot
 `GET /layouts`, `GET /tipos-insumo`, `GET /tabelas-preco`, `GET /prestadores`,
 `POST /importar`, `GET /status`.
 
-**Duas pendências conhecidas, deixadas de propósito sem implementação especulativa:**
+**Servidor RPW:** não precisou de rota própria em `brasindice.p`. A lista vem direto do
+Business Entity nativo do TOTVS `GET /api/btb/v1/servidoresExecucao` (o mesmo usado pela tela
+"Relatório de Pedidos" / `html.rpw-orderMaintenanceReport`), consumido em
+`BrasindiceApiService.getServidoresRpw()`. Resposta paginada `{total, hasNext, items:
+[{code, name}]}`, mapeada para `{codigo, descricao}`.
 
-- `GET /servidores-rpw` não foi implementado — não consegui confirmar qual tabela lista os
-  servidores RPW disponíveis (o include `rtp/rtcriapedidoexec.p`, usado pelo resto do sistema
-  para enfileirar pedidos, não está neste repositório). O front-end já tem fallback de
-  digitação manual para esse campo, então a tela funciona mesmo sem essa rota.
+**Uma pendência conhecida, deixada de propósito sem implementação especulativa:**
+
 - `POST /importar` roda a leitura e gravação de forma **síncrona**, dentro da própria chamada
   REST — não enfileira um pedido assíncrono via `rtp/rtcriapedidoexec.p` como faz
   `criaPedidoRpw` em `integraNotasEntrada.p` (o padrão usado no resto do sistema para rodar
