@@ -55,11 +55,6 @@ O body passa a incluir:
 Se `prestadores` ou `tabelasPreco` vier vazio, o pedido deve ser rejeitado (a tela já bloqueia
 o envio nesses casos).
 
-Opcional: `"simular": true` roda a leitura/validação e devolve as contagens de criados/alterados
-sem gravar nada em `preinpr`/`insupres` (equivalente ao "Simular?" da tela GPS). Ainda não há
-campo correspondente no formulário Angular — se for útil, dá para adicionar um toggle "Testar
-(simular)" no front reaproveitando esse parâmetro.
-
 ## Implementação de referência
 
 A lógica headless (leitura do arquivo + gravação em `preinpr`/`insupres`, restrita aos
