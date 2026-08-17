@@ -15,7 +15,9 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class BrasindiceApiService {
-  private readonly baseUrl = '/api/v1/brasindice';
+  // Prefixo confirmado em routes/RestAPI/*.http (especificos): /api/rest/v1/<recurso>,
+  // nao /api/v1/<recurso>. Resource "brasindice" = rest/api/v1/brasindice.p.
+  private readonly baseUrl = '/api/rest/v1/brasindice';
 
   constructor(private readonly http: HttpClient) {}
 
