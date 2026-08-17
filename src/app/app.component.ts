@@ -7,7 +7,7 @@ import {
     PoNotificationService,
     PoSelectOption
 } from '@po-ui/ng-components';
-import { ImportRequest, ImportStatus, Layout, RowError, TabelaPreco, TipoInsumo } from './core/models/brasindice.models';
+import { ImportRequest, ImportStatus, Layout, Prestador, RowError, ServidorRpw, TabelaPreco, TipoInsumo } from './core/models/brasindice.models';
 import { BrasindiceApiService } from './core/services/brasindice-api.service';
 
 @Component({
@@ -22,33 +22,38 @@ import { BrasindiceApiService } from './core/services/brasindice-api.service';
   styleUrl: './app.component.scss'
 })
 export class AppComponent implements OnInit, OnDestroy {
+  readonly defaultLayout = 1;
+
   readonly form = this.fb.group({
-    arquivo: [null as File | null, Validators.required],
+    arquivo: ['', Validators.required],
     tipoInsumo: ['', Validators.required],
-    tabelaPreco: [''],
+    tabelaPreco: ['', Validators.required],
     digitacaoManual: [false],
     alterarValidade: [false],
     alterarValorZerado: [false],
     dataLimiteAlt: [null as Date | null],
     dataLimiteInc: [null as Date | null],
     importarCodigos: ['Brasindice'],
-    layout: [1, Validators.required],
-    servidorRpw: ['', Validators.required]
+    servidorRpw: ['', Validators.required],
+    prestadores: [[] as string[], Validators.required]
   });
 
   layouts: Layout[] = [];
   tiposInsumo: TipoInsumo[] = [];
   tabelasPreco: TabelaPreco[] = [];
+  servidores: ServidorRpw[] = [];
+  prestadores: Prestador[] = [];
+  isLoadingPrestadores = false;
   status: ImportStatus | null = null;
   lastPedido?: number;
   validationErrors: string[] = [];
 
   isLoadingOptions = false;
+  isLoadingServidores = false;
   isSubmitting = false;
   isCheckingStatus = false;
 
   fileName = '';
-  filePayload = '';
 
   private pollingTimerId?: number;
 
@@ -57,16 +62,23 @@ export class AppComponent implements OnInit, OnDestroy {
     { value: 'Tuss', label: 'TUSS' }
   ];
 
-  get layoutOptions(): PoSelectOption[] {
-    return this.layouts.map((item) => ({ value: item.id, label: `${item.id} - ${item.nome}` }));
-  }
-
   get tipoInsumoOptions(): PoSelectOption[] {
     return this.tiposInsumo.map((item) => ({ value: item.codigo, label: `${item.codigo} - ${item.descricao}` }));
   }
 
   get tabelaPrecoOptions(): PoSelectOption[] {
     return this.tabelasPreco.map((item) => ({ value: item.codigo, label: `${item.codigo} - ${item.descricao}` }));
+  }
+
+  get servidorRpwOptions(): PoSelectOption[] {
+    return this.servidores.map((item) => ({ value: item.codigo, label: item.descricao ? `${item.codigo} - ${item.descricao}` : item.codigo }));
+  }
+
+  get prestadorOptions(): PoSelectOption[] {
+    return this.prestadores.map((item) => ({
+      value: `${item.codigoUnidade}|${item.codigo}`,
+      label: `${item.codigo} - ${item.nome}`
+    }));
   }
 
   constructor(
@@ -77,32 +89,39 @@ export class AppComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadOptions();
+    this.loadPrestadores();
   }
 
   ngOnDestroy(): void {
     this.stopStatusPolling();
   }
 
-  async onFileSelected(event: Event): Promise<void> {
+  onFileSelected(event: Event): void {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
 
     if (!file) {
-      this.form.patchValue({ arquivo: null });
       this.fileName = '';
-      this.filePayload = '';
       return;
     }
 
-    this.form.patchValue({ arquivo: file });
     this.fileName = file.name;
-    this.filePayload = await this.readFileAsBase64(file);
+    // Pré-preenche com o caminho padrão no servidor; usuário pode editar antes de enviar
+    const currentPath = this.form.value.arquivo;
+    if (!currentPath) {
+      this.form.patchValue({ arquivo: `t:/brasindice/${file.name}` });
+    }
   }
 
   onSubmit(): void {
-    if (this.form.invalid || !this.filePayload) {
+    if (this.form.invalid) {
       this.notification.warning('Informe o arquivo e os campos obrigatórios.');
       this.form.markAllAsTouched();
+      return;
+    }
+
+    if (!this.form.value.prestadores?.length) {
+      this.notification.warning('Selecione ao menos um prestador.');
       return;
     }
 
@@ -110,17 +129,18 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isSubmitting = true;
 
     const payload: ImportRequest = {
-      arquivo: this.filePayload,
+      arquivo: this.form.value.arquivo!,
       tipoInsumo: this.form.value.tipoInsumo!,
-      tabelaPreco: this.form.value.tabelaPreco || undefined,
+      tabelaPreco: this.form.value.tabelaPreco!,
       digitacaoManual: !!this.form.value.digitacaoManual,
       alterarValidade: !!this.form.value.alterarValidade,
       alterarValorZerado: !!this.form.value.alterarValorZerado,
       dataLimiteAlt: this.serializeDate(this.form.value.dataLimiteAlt || null),
       dataLimiteInc: this.serializeDate(this.form.value.dataLimiteInc || null),
       importarCodigos: this.form.value.importarCodigos || undefined,
-      layout: this.form.value.layout!,
-      servidorRpw: this.form.value.servidorRpw!
+      layout: this.defaultLayout,
+      servidorRpw: this.form.value.servidorRpw!,
+      prestadores: this.form.value.prestadores || []
     };
 
     this.api.startImport(payload).subscribe({
@@ -179,14 +199,25 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private loadOptions(): void {
     this.isLoadingOptions = true;
+    this.isLoadingServidores = true;
+
+    this.api.getServidoresRpw().subscribe({
+      next: (servidores) => {
+        this.servidores = servidores;
+        if (servidores.length && !this.form.value.servidorRpw) {
+          this.form.patchValue({ servidorRpw: servidores[0].codigo });
+        }
+      },
+      complete: () => {
+        this.isLoadingServidores = false;
+      }
+    });
+
     this.api.loadMetadata().subscribe({
       next: ({ layouts, tipos, tabelas }) => {
         this.layouts = layouts;
         this.tiposInsumo = tipos;
         this.tabelasPreco = tabelas;
-        if (!this.form.value.layout && this.layouts.length) {
-          this.form.patchValue({ layout: this.layouts[0].id });
-        }
         if (!this.form.value.tipoInsumo && this.tiposInsumo.length) {
           this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
         }
@@ -194,13 +225,76 @@ export class AppComponent implements OnInit, OnDestroy {
           this.form.patchValue({ tabelaPreco: this.tabelasPreco[0].codigo });
         }
       },
-      error: () => {
-        this.notification.error('Erro ao carregar layouts, tipos e tabelas. Verifique autenticação/acesso da API.');
+      error: (error: HttpErrorResponse) => {
+        this.applyFallbackMetadata();
+
+        if (error.status === 404 || error.status === 405) {
+          this.notification.warning(
+            'A API não expõe /layouts, /tipos-insumo e /tabelas-preco. Usando opções padrão locais.'
+          );
+          return;
+        }
+
+        this.notification.warning('Não foi possível carregar listas da API. Usando opções padrão locais.');
       },
       complete: () => {
         this.isLoadingOptions = false;
       }
     });
+  }
+
+  private loadPrestadores(): void {
+    this.isLoadingPrestadores = true;
+    this.api.getPrestadores().subscribe({
+      next: (prestadores) => {
+        this.prestadores = prestadores;
+
+        if (!prestadores.length) {
+          this.notification.warning(
+            'A API não retornou prestadores (endpoint /prestadores ainda não implementado no RPW?). Selecione manualmente após configurar o servidor.'
+          );
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 404 || error.status === 405) {
+          this.notification.warning(
+            'A API não expõe /prestadores. Peça ao time RPW para publicar o endpoint (ver docs/api-prestadores.md).'
+          );
+          return;
+        }
+
+        this.notification.warning('Não foi possível carregar a lista de prestadores.');
+      },
+      complete: () => {
+        this.isLoadingPrestadores = false;
+      }
+    });
+  }
+
+  private applyFallbackMetadata(): void {
+    this.layouts = [{ id: this.defaultLayout, nome: 'Brasíndice', descricao: 'Layout padrão Brasíndice' }];
+
+    if (!this.tiposInsumo.length) {
+      this.tiposInsumo = [
+        { codigo: '01', descricao: 'Medicamento' },
+        { codigo: '21', descricao: 'Medicamentos Brasíndice' }
+      ];
+    }
+
+    if (!this.tabelasPreco.length) {
+      this.tabelasPreco = [
+        { codigo: '01', descricao: 'Tabela padrão' },
+        { codigo: '20', descricao: 'TUSS - Proc. Méd.' }
+      ];
+    }
+
+    if (!this.form.value.tipoInsumo) {
+      this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
+    }
+
+    if (!this.form.value.tabelaPreco) {
+      this.form.patchValue({ tabelaPreco: this.tabelasPreco[0].codigo });
+    }
   }
 
   private serializeDate(value: Date | string | null): string | undefined {
@@ -209,20 +303,12 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     const parsed = value instanceof Date ? value : new Date(value);
-    return formatDate(parsed, 'dd/MM/yyyy', 'pt-BR');
-  }
 
-  private readFileAsBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.includes(',') ? result.split(',')[1] : result;
-        resolve(base64);
-      };
-      reader.onerror = (error) => reject(error);
-      reader.readAsDataURL(file);
-    });
+    if (Number.isNaN(parsed.getTime())) {
+      return undefined;
+    }
+
+    return formatDate(parsed, 'dd/MM/yyyy', 'pt-BR');
   }
 
   private startStatusPolling(): void {
@@ -259,6 +345,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private extractRowErrors(error: HttpErrorResponse): string[] {
     const payload = error.error as { RowErrors?: RowError[]; rowErrors?: RowError[] } | undefined;
     const rows = payload?.RowErrors || payload?.rowErrors || [];
-    return rows.map((item) => item.ErrorMessage).filter(Boolean);
+    return rows
+      .map((item) => item.ErrorMessage || item.ErrorDescription || '')
+      .filter((message) => !!message);
   }
 }

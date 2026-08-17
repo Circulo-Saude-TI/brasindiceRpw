@@ -1,12 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { forkJoin, map, Observable } from 'rxjs';
+import { catchError, forkJoin, map, Observable, of } from 'rxjs';
 import {
   ImportRequest,
   ImportResponse,
   ImportStatus,
   Layout,
   MetadataResponse,
+  Prestador,
+  ServidorRpw,
   TabelaPreco,
   TipoInsumo
 } from '../models/brasindice.models';
@@ -43,8 +45,66 @@ export class BrasindiceApiService {
       .pipe(map((response) => this.extractCollection<TabelaPreco>(response, 'tabelas')));
   }
 
+  getServidoresRpw(): Observable<ServidorRpw[]> {
+    return this.http
+      .get<
+        | { servidores?: ServidorRpw[]; Servidores?: ServidorRpw[]; items?: ServidorRpw[] }
+        | ServidorRpw[]
+      >(`${this.baseUrl}/servidores-rpw`)
+      .pipe(
+        map((response) => {
+          if (Array.isArray(response)) {
+            return response as ServidorRpw[];
+          }
+
+          if (response && typeof response === 'object') {
+            const collection =
+              response.servidores ??
+              response.Servidores ??
+              response.items;
+
+            if (Array.isArray(collection)) {
+              return collection;
+            }
+          }
+
+          return [];
+        }),
+        catchError(() => of([]))
+      );
+  }
+
+  getPrestadores(): Observable<Prestador[]> {
+    return this.http
+      .get<
+        | { prestadores?: Prestador[]; Prestadores?: Prestador[]; items?: Prestador[] }
+        | Prestador[]
+      >(`${this.baseUrl}/prestadores`)
+      .pipe(
+        map((response) => {
+          if (Array.isArray(response)) {
+            return response as Prestador[];
+          }
+
+          if (response && typeof response === 'object') {
+            const collection =
+              response.prestadores ??
+              response.Prestadores ??
+              response.items;
+
+            if (Array.isArray(collection)) {
+              return collection;
+            }
+          }
+
+          return [];
+        }),
+        catchError(() => of([]))
+      );
+  }
+
   startImport(payload: ImportRequest): Observable<ImportResponse> {
-    const body = {
+    const body: Record<string, unknown> = {
       arquivo: payload.arquivo,
       tipoInsumo: payload.tipoInsumo,
       tabelaPreco: payload.tabelaPreco,
@@ -54,12 +114,24 @@ export class BrasindiceApiService {
       dataLimiteAlt: payload.dataLimiteAlt,
       dataLimiteInc: payload.dataLimiteInc,
       importarCodigos: payload.importarCodigos,
-      layout: payload.layout,
-      servidorRpw: payload.servidorRpw
+      servidorRpw: payload.servidorRpw,
+      prestadores: payload.prestadores ?? []
     };
 
+    if (payload.layout !== undefined) {
+      body['layout'] = payload.layout;
+    }
+
     return this.http
-      .post<ImportResponse & { nrPedido?: number; pedido?: number; mensagem?: string }>(
+      .post<
+        ImportResponse & {
+          nrPedido?: number;
+          pedido?: number;
+          Pedido?: number;
+          mensagem?: string;
+          Mensagem?: string;
+        }
+      >(
         `${this.baseUrl}/importar`,
         body
       )
@@ -67,8 +139,8 @@ export class BrasindiceApiService {
         map((response) => ({
           ...response,
           success: response.success ?? true,
-          pedido: response.pedido ?? response.nrPedido ?? response.jobId,
-          message: response.message ?? response.mensagem
+          pedido: response.pedido ?? response.Pedido ?? response.nrPedido ?? response.jobId,
+          message: response.message ?? response.mensagem ?? response.Mensagem
         }))
       );
   }
@@ -79,15 +151,25 @@ export class BrasindiceApiService {
         ImportStatus & {
           nrPedido?: number;
           pedido?: number;
+          Pedido?: number;
           situacao?: string;
+          Situacao?: string;
           mensagem?: string;
+          Mensagem?: string;
+          retorno?: string;
+          Retorno?: string;
         }
       >(`${this.baseUrl}/status?pedido=${pedido}`)
       .pipe(
         map((response) => ({
-          pedido: response.pedido ?? response.nrPedido ?? pedido,
-          status: response.status ?? response.situacao ?? 'pending',
-          message: response.message ?? response.mensagem
+          pedido: response.pedido ?? response.Pedido ?? response.nrPedido ?? pedido,
+          status: response.status ?? response.situacao ?? response.Situacao ?? 'pending',
+          message:
+            response.message ??
+            response.mensagem ??
+            response.Mensagem ??
+            response.retorno ??
+            response.Retorno
         }))
       );
   }
@@ -101,6 +183,22 @@ export class BrasindiceApiService {
       const value = (response as Record<string, unknown>)[key];
       if (Array.isArray(value)) {
         return value as T[];
+      }
+    }
+
+    if (response && typeof response === 'object') {
+      const record = response as Record<string, unknown>;
+      const alternateKeys: Record<'layouts' | 'tipos' | 'tabelas', string[]> = {
+        layouts: ['Layouts', 'items'],
+        tipos: ['Tipos', 'items'],
+        tabelas: ['Tabelas', 'items']
+      };
+
+      for (const alternateKey of alternateKeys[key]) {
+        const value = record[alternateKey];
+        if (Array.isArray(value)) {
+          return value as T[];
+        }
       }
     }
 

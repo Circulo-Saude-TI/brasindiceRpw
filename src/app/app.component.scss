@@ -1,26 +1,33 @@
-$bg-page: #eef3f8;
+// Paleta oficial — Brand Book Círculo Saúde V1.0 (OUT/2025)
+$bg-page: #faf7f0; // off-white 100%
 $bg-card: #ffffff;
-$bg-soft: #f7f9fc;
-$text-primary: #172334;
-$text-secondary: #66758a;
-$border: #dbe3ee;
-$primary: #2563eb;
-$primary-dark: #1d4ed8;
+$bg-soft: #f6efe5; // off-white 40%
+$text-primary: #1a1a1a;
+$text-secondary: #6b6558;
+$border: #ece2d2;
+$primary: #fb4b00; // laranja Pantone 1655 C — destaque
+$primary-dark: #ff5f06; // laranja Pantone 165 C
+$accent: #01369b; // azul Pantone 2736 C — contraste sutil
+$accent-light: #0659fa; // azul Pantone 2726 C
 $success-soft: #ecfdf3;
-$warning-soft: #fff7ed;
+$warning-soft: #faf7f0;
 $danger-soft: #fff1f2;
-$shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+$shadow: 0 10px 30px rgba(26, 26, 26, 0.06);
+
+$font-heading: 'DM Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+$font-body: 'Source Sans 3', 'Segoe UI', Roboto, Arial, sans-serif;
 
 :host {
   display: block;
+  font-family: $font-body;
 }
 
 .page-shell {
   min-height: 100vh;
   padding: 2rem;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.08), transparent 28%),
-    linear-gradient(180deg, #f8fbff 0%, $bg-page 100%);
+    radial-gradient(circle at top left, rgba(251, 75, 0, 0.06), transparent 28%),
+    linear-gradient(180deg, #fffdf9 0%, $bg-page 100%);
 }
 
 .brasindice-form {
@@ -35,7 +42,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 .panel,
 .summary-card {
   background: $bg-card;
-  border: 1px solid rgba(219, 227, 238, 0.9);
+  border: 1px solid rgba(236, 226, 210, 0.9);
   box-shadow: $shadow;
 }
 
@@ -54,25 +61,40 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   max-width: 760px;
 }
 
+.hero-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.hero-symbol {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
 .hero-eyebrow {
   display: inline-flex;
   align-items: center;
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
-  color: $primary-dark;
+  background: rgba(251, 75, 0, 0.09);
+  color: $primary;
   font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  font-family: $font-body;
 }
 
 .hero-title {
-  margin: 0.9rem 0 0.35rem;
-  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  font-size: 2.1rem;
   line-height: 1.1;
   color: $text-primary;
   font-weight: 700;
+  font-family: $font-heading;
 }
 
 .hero-subtitle {
@@ -142,6 +164,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   color: $text-primary;
   font-size: 1.15rem;
   font-weight: 700;
+  font-family: $font-heading;
 }
 
 .panel-title-small {
@@ -165,7 +188,12 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   padding: 1rem;
   border-radius: 20px;
   border: 1px solid $border;
-  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fdf6ee 100%);
+
+  .path-input {
+    display: block;
+    margin-top: 0.75rem;
+  }
 }
 
 .upload-card-header {
@@ -199,15 +227,15 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   align-items: center;
   gap: 1rem;
   padding: 1.1rem;
-  border: 1.5px dashed #bfd0ea;
+  border: 1.5px dashed #f0c9a6;
   border-radius: 18px;
-  background: #f8fbff;
+  background: #fdf6ee;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
     border-color: $primary;
-    background: #f2f7ff;
+    background: #fbeee0;
   }
 }
 
@@ -217,7 +245,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   border-radius: 14px;
   display: grid;
   place-items: center;
-  background: rgba(37, 99, 235, 0.1);
+  background: rgba(251, 75, 0, 0.1);
   color: $primary-dark;
   font-size: 1.25rem;
   flex-shrink: 0;
@@ -259,7 +287,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 .panel-divider {
   height: 1px;
   margin: 1.25rem 0;
-  background: linear-gradient(90deg, rgba(219, 227, 238, 0.9), rgba(219, 227, 238, 0.25));
+  background: linear-gradient(90deg, rgba(236, 226, 210, 0.9), rgba(236, 226, 210, 0.25));
 }
 
 .toggles-grid {
@@ -344,7 +372,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   border-radius: 16px;
   display: grid;
   place-items: center;
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(251, 75, 0, 0.08);
   color: $primary-dark;
   font-size: 1.5rem;
 }
@@ -409,7 +437,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 .layout-card {
   border-radius: 20px;
   border: 1px solid $border;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #fdf6ee 100%);
   padding: 1rem;
 }
 
@@ -427,7 +455,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   border-radius: 10px;
   display: grid;
   place-items: center;
-  background: rgba(37, 99, 235, 0.09);
+  background: rgba(251, 75, 0, 0.09);
   color: $primary-dark;
   font-weight: 700;
   font-size: 0.9rem;
@@ -436,7 +464,7 @@ $shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 .layout-badge {
   padding: 0.35rem 0.7rem;
   border-radius: 999px;
-  background: rgba(37, 99, 235, 0.08);
+  background: rgba(251, 75, 0, 0.08);
   color: $primary-dark;
   font-size: 0.78rem;
   font-weight: 600;

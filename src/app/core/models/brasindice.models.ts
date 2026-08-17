@@ -16,6 +16,17 @@ export interface TabelaPreco {
   descricao: string;
 }
 
+export interface ServidorRpw {
+  codigo: string;
+  descricao: string;
+}
+
+export interface Prestador {
+  codigoUnidade: string;
+  codigo: string;
+  nome: string;
+}
+
 export interface ImportRequest {
   arquivo: string;
   tipoInsumo: string;
@@ -26,13 +37,18 @@ export interface ImportRequest {
   dataLimiteAlt?: string;
   dataLimiteInc?: string;
   importarCodigos?: string;
-  layout: number;
+  layout?: number;
   servidorRpw: string;
+  prestadores?: string[];
 }
 
 export interface RowError {
+  ErrorSequence?: number;
+  ErrorNumber?: number;
+  ErrorType?: string;
   RowNumber?: number;
-  ErrorMessage: string;
+  ErrorMessage?: string;
+  ErrorDescription?: string;
 }
 
 export interface ImportResponse {

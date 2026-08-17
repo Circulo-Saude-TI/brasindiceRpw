@@ -1,8 +1,37 @@
 /* Global Styles */
 @import 'circulosaudetheme/dist/index.css';
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+/*
+ * Brand Book Círculo Saúde V1.0 - OUT/2025
+ * Sobrepõe as variáveis do tema PO com a paleta e tipografia oficiais.
+ * Carbona é a tipografia principal da marca (títulos); como é uma fonte paga
+ * e não está licenciada neste projeto, usamos DM Sans (alternativa gratuita
+ * recomendada pelo próprio brand book). Source Sans é a tipografia de apoio.
+ */
+:root {
+  --color-brand-01-base: #01369b;
+  --color-brand-01-dark: #012a78;
+  --color-brand-01-darker: #011d54;
+  --color-brand-01-darkest: #011230;
+  --color-brand-03-base: #fb4b00;
+
+  --color-primary: #01369b;
+  --color-primary-dark-20: #012a78;
+  --color-primary-dark-40: #011d54;
+  --color-primary-light-80: #d6f2fe;
+  --color-primary-light-95: #eef6ff;
+
+  --color-tertiary: #fb4b00;
+
+  --font-family-theme: 'Source Sans 3', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-family-theme-bold: 'Source Sans 3', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-family-heading: 'DM Sans', 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-family: var(--font-family-theme);
+}
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-  background-color: #eef2f7;
+  font-family: var(--font-family-theme);
+  background-color: #faf7f0;
 }

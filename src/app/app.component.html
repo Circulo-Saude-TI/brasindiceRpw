@@ -1,8 +1,17 @@
 <div class="page-shell">
   <div class="hero-card">
     <div class="hero-copy">
-      <span class="hero-eyebrow">Brasíndice · RPW</span>
-      <h1 class="hero-title">Importação de insumos</h1>
+      <div class="hero-brand">
+        <svg class="hero-symbol" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="50" cy="26" r="24" fill="#fb4b00"/>
+          <circle cx="50" cy="74" r="24" fill="#fb4b00"/>
+          <circle cx="26" cy="50" r="24" fill="#fb4b00"/>
+          <circle cx="74" cy="50" r="24" fill="#fb4b00"/>
+          <circle cx="50" cy="50" r="22" fill="#ffffff"/>
+        </svg>
+        <span class="hero-eyebrow">Círculo Saúde · RPW</span>
+      </div>
+      <h1 class="hero-title">Importação Brasíndice x Prestador</h1>
       <p class="hero-subtitle">Preencha os parâmetros, envie para o RPW e acompanhe o processamento em tempo real.</p>
     </div>
 
@@ -40,6 +49,10 @@
       <span class="summary-label">Tabelas</span>
       <strong class="summary-value">{{ tabelasPreco.length }}</strong>
     </div>
+    <div class="summary-card">
+      <span class="summary-label">Prestadores selecionados</span>
+      <strong class="summary-value">{{ form.value.prestadores?.length || 0 }} / {{ prestadores.length }}</strong>
+    </div>
     <div class="summary-card" *ngIf="lastPedido; else semPedido">
       <span class="summary-label">Último Pedido</span>
       <strong class="summary-value">#{{ lastPedido }}</strong>
@@ -57,7 +70,7 @@
       <section class="panel panel-main">
         <div class="panel-header">
           <h2 class="panel-title">Parâmetros da Importação</h2>
-          <p class="panel-subtitle">Defina arquivo, layout e opções de processamento.</p>
+          <p class="panel-subtitle">Selecione o arquivo local para gerar o caminho automaticamente, ajuste se necessário e configure as opções de importação.</p>
         </div>
 
         <div class="form-section compact-section">
@@ -66,9 +79,8 @@
               <div class="upload-card-header">
                 <div>
                   <span class="upload-label">Arquivo *</span>
-                  <p class="upload-hint">Selecione um arquivo `.txt` ou `.csv` para enviar à API.</p>
+                  <p class="upload-hint">Selecione o arquivo local para preencher o caminho automaticamente.</p>
                 </div>
-
                 <po-button
                   p-label="Escolher arquivo"
                   p-kind="tertiary"
@@ -90,21 +102,22 @@
                 <div class="upload-icon">⬆</div>
                 <div class="upload-text">
                   <strong>{{ fileName || 'Clique para selecionar um arquivo' }}</strong>
-                  <span>{{ fileName ? 'Arquivo pronto para importação.' : 'Formatos aceitos: .txt e .csv' }}</span>
+                  <span>{{ fileName ? 'Caminho pré-preenchido abaixo — ajuste se necessário.' : 'Formatos aceitos: .txt e .csv' }}</span>
                 </div>
               </div>
+
+              <po-input
+                formControlName="arquivo"
+                p-label="Caminho no Servidor RPW *"
+                p-placeholder="Ex.: t:/brasindice/arquivo.csv"
+                p-icon="po-icon-edit"
+                name="arquivo"
+                class="path-input"
+              ></po-input>
             </div>
           </div>
 
-          <div class="field-row field-row-3">
-            <po-select
-              formControlName="layout"
-              p-label="Layout *"
-              [p-options]="layoutOptions"
-              p-placeholder="Selecione o layout"
-              name="layout"
-            ></po-select>
-
+          <div class="field-row field-row-2">
             <po-select
               formControlName="tipoInsumo"
               p-label="Tipo de Insumo *"
@@ -115,7 +128,7 @@
 
             <po-select
               formControlName="tabelaPreco"
-              p-label="Tabela de Preço"
+              p-label="Tabela de Preço *"
               [p-options]="tabelaPrecoOptions"
               p-placeholder="Selecione a tabela"
               name="tabelaPreco"
@@ -130,12 +143,37 @@
               name="importarCodigos"
             ></po-select>
 
-            <po-input
+            <po-select
+              *ngIf="servidores.length; else servidorRpwManual"
               formControlName="servidorRpw"
               p-label="Servidor RPW *"
-              p-placeholder="Ex.: RPWSRV01"
+              [p-options]="servidorRpwOptions"
               name="servidorRpw"
-            ></po-input>
+              p-placeholder="Selecione o servidor"
+              [p-disabled]="isLoadingServidores"
+            ></po-select>
+
+            <ng-template #servidorRpwManual>
+              <po-input
+                formControlName="servidorRpw"
+                p-label="Servidor RPW *"
+                [p-placeholder]="isLoadingServidores ? 'Carregando servidores...' : 'Ex.: RPWSRV01'"
+                p-help="Se a API não retornar a lista, informe o servidor manualmente."
+                name="servidorRpw"
+              ></po-input>
+            </ng-template>
+          </div>
+
+          <div class="field-row field-row-single">
+            <po-multiselect
+              formControlName="prestadores"
+              p-label="Prestadores *"
+              [p-options]="prestadorOptions"
+              p-placeholder="Selecione um ou mais prestadores"
+              p-help="Somente os prestadores selecionados terão a tabela de preço atualizada (Importação Brasíndice x Prestador)."
+              name="prestadores"
+              [p-disabled]="isLoadingPrestadores"
+            ></po-multiselect>
           </div>
         </div>
 
@@ -224,7 +262,7 @@
         <div class="help-card">
           <h3 class="help-title">Boas práticas</h3>
           <ul class="help-list">
-            <li>Confirme o layout antes do envio.</li>
+            <li>Layout padrão Brasíndice (1) aplicado automaticamente.</li>
             <li>Use datas limite somente quando necessário.</li>
             <li>Valide o caminho do arquivo no servidor RPW.</li>
           </ul>
