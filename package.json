@@ -5,6 +5,7 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:war": "powershell -ExecutionPolicy Bypass -File scripts/build-war.ps1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:brasindice-rpw": "node dist/brasindice-rpw/server/server.mjs"

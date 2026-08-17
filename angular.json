@@ -31,7 +31,12 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "web.xml",
+                "input": "web-deploy/WEB-INF",
+                "output": "WEB-INF"
+              }
             ],
             "styles": [
               "node_modules/circulosaudetheme/dist/index.css",
@@ -91,7 +96,12 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "web.xml",
+                "input": "web-deploy/WEB-INF",
+                "output": "WEB-INF"
+              }
             ],
             "styles": [
               "node_modules/circulosaudetheme/dist/index.css",
