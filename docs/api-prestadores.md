@@ -57,7 +57,21 @@ o envio nesses casos).
 
 ## Implementação de referência
 
-A lógica headless (leitura do arquivo + gravação em `preinpr`/`insupres`, restrita aos
-prestadores e tabelas informados) já foi implementada em
-`especificos/gp/api/api-brasindice-prestador.p`, branch `GLPI-#12248`. Falta publicá-la
-como recurso REST no catálogo PASOE nesses dois caminhos.
+A API foi implementada em `especificos/rest/api/v1/brasindice.p`, branch `GLPI-#12248`,
+seguindo o padrão real deste projeto para publicar REST (`utp/ut-api-action.i`, o mesmo usado
+por `rest/api/v1/paramConexaoTasy.p` e `rest/api/v1/integraNotasEntrada.p`). Rotas cobertas:
+`GET /layouts`, `GET /tipos-insumo`, `GET /tabelas-preco`, `GET /prestadores`,
+`POST /importar`, `GET /status`.
+
+**Duas pendências conhecidas, deixadas de propósito sem implementação especulativa:**
+
+- `GET /servidores-rpw` não foi implementado — não consegui confirmar qual tabela lista os
+  servidores RPW disponíveis (o include `rtp/rtcriapedidoexec.p`, usado pelo resto do sistema
+  para enfileirar pedidos, não está neste repositório). O front-end já tem fallback de
+  digitação manual para esse campo, então a tela funciona mesmo sem essa rota.
+- `POST /importar` roda a leitura e gravação de forma **síncrona**, dentro da própria chamada
+  REST — não enfileira um pedido assíncrono via `rtp/rtcriapedidoexec.p` como faz
+  `criaPedidoRpw` em `integraNotasEntrada.p` (o padrão usado no resto do sistema para rodar
+  programas em servidor RPW). Funciona para o volume de um arquivo Brasíndice, mas diverge da
+  arquitetura usada nas outras integrações — vale avaliar com o time se deve migrar para o
+  modelo de fila.
