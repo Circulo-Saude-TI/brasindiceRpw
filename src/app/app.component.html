@@ -46,8 +46,8 @@
       <strong class="summary-value">{{ tiposInsumo.length }}</strong>
     </div>
     <div class="summary-card">
-      <span class="summary-label">Tabelas</span>
-      <strong class="summary-value">{{ tabelasPreco.length }}</strong>
+      <span class="summary-label">Tabelas selecionadas</span>
+      <strong class="summary-value">{{ form.value.tabelasPreco?.length || 0 }} / {{ tabelasPreco.length }}</strong>
     </div>
     <div class="summary-card">
       <span class="summary-label">Prestadores selecionados</span>
@@ -126,13 +126,14 @@
               name="tipoInsumo"
             ></po-select>
 
-            <po-select
-              formControlName="tabelaPreco"
-              p-label="Tabela de Preço *"
+            <po-multiselect
+              formControlName="tabelasPreco"
+              p-label="Tabela Qtd Moeda *"
               [p-options]="tabelaPrecoOptions"
-              p-placeholder="Selecione a tabela"
-              name="tabelaPreco"
-            ></po-select>
+              p-placeholder="Selecione uma ou mais tabelas"
+              p-help="Equivalente ao F5 da tela RC0110D/E — é possível aplicar o arquivo a várias tabelas ao mesmo tempo (ex.: CBH/09, TUS/09, CBH/14)."
+              name="tabelasPreco"
+            ></po-multiselect>
           </div>
 
           <div class="field-row field-row-2">

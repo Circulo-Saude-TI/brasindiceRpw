@@ -38,11 +38,26 @@ O body passa a incluir:
 
 ```json
 {
-  "prestadores": ["1|000123", "1|000456"]
+  "prestadores": ["1|000123", "1|000456"],
+  "tabelasPreco": ["CBH/09", "TUS/09", "CBH/14"]
 }
 ```
 
-Cada item é `codigoUnidade|codigo`. O backend deve filtrar `depresfat`/`preserv` pelos
-pares informados antes de rodar a leitura do arquivo e `cria-dados`, replicando o filtro
-que hoje é feito pela tela GPS via `tmp-prestador`. Se a lista vier vazia, o pedido deve
-ser rejeitado (a tela já bloqueia o envio nesse caso).
+- `prestadores`: cada item é `codigoUnidade|codigo`. O backend filtra `depresfat`/`preserv`
+  pelos pares informados antes de rodar a leitura do arquivo e `cria-dados`, replicando o
+  filtro que a tela GPS faz via `tmp-prestador`.
+- `tabelasPreco`: **lista**, não string única — conforme o manual "Chamado para telas do
+  Brasíndice" (passo *Tabela Qtd Moeda*, F5), a tela original permite marcar várias tabelas
+  (ex.: CBH/09, TUS/09, CBH/14) e aplica o mesmo arquivo a todas elas, replicando o
+  `for each tmp-tabelas where lg-sel = yes` do `.p` original. Um único código também é aceito
+  (lista de 1 item).
+
+Se `prestadores` ou `tabelasPreco` vier vazio, o pedido deve ser rejeitado (a tela já bloqueia
+o envio nesses casos).
+
+## Implementação de referência
+
+A lógica headless (leitura do arquivo + gravação em `preinpr`/`insupres`, restrita aos
+prestadores e tabelas informados) já foi implementada em
+`especificos/gp/api/api-brasindice-prestador.p`, branch `GLPI-#12248`. Falta publicá-la
+como recurso REST no catálogo PASOE nesses dois caminhos.

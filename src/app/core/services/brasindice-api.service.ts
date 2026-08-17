@@ -107,7 +107,7 @@ export class BrasindiceApiService {
     const body: Record<string, unknown> = {
       arquivo: payload.arquivo,
       tipoInsumo: payload.tipoInsumo,
-      tabelaPreco: payload.tabelaPreco,
+      tabelasPreco: payload.tabelasPreco,
       digitacaoManual: payload.digitacaoManual,
       alterarValidade: payload.alterarValidade,
       alterarValorZerado: payload.alterarValorZerado,

@@ -27,7 +27,7 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly form = this.fb.group({
     arquivo: ['', Validators.required],
     tipoInsumo: ['', Validators.required],
-    tabelaPreco: ['', Validators.required],
+    tabelasPreco: [[] as string[], Validators.required],
     digitacaoManual: [false],
     alterarValidade: [false],
     alterarValorZerado: [false],
@@ -125,13 +125,18 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.form.value.tabelasPreco?.length) {
+      this.notification.warning('Selecione ao menos uma tabela de preço (Qtd Moeda).');
+      return;
+    }
+
     this.validationErrors = [];
     this.isSubmitting = true;
 
     const payload: ImportRequest = {
       arquivo: this.form.value.arquivo!,
       tipoInsumo: this.form.value.tipoInsumo!,
-      tabelaPreco: this.form.value.tabelaPreco!,
+      tabelasPreco: this.form.value.tabelasPreco || [],
       digitacaoManual: !!this.form.value.digitacaoManual,
       alterarValidade: !!this.form.value.alterarValidade,
       alterarValorZerado: !!this.form.value.alterarValorZerado,
@@ -221,9 +226,6 @@ export class AppComponent implements OnInit, OnDestroy {
         if (!this.form.value.tipoInsumo && this.tiposInsumo.length) {
           this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
         }
-        if (!this.form.value.tabelaPreco && this.tabelasPreco.length) {
-          this.form.patchValue({ tabelaPreco: this.tabelasPreco[0].codigo });
-        }
       },
       error: (error: HttpErrorResponse) => {
         this.applyFallbackMetadata();
@@ -248,6 +250,14 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.getPrestadores().subscribe({
       next: (prestadores) => {
         this.prestadores = prestadores;
+
+        // Comportamento do RC0110D/E: a tela abre com todos os prestadores
+        // pré-selecionados; o usuário desmarca os que não quer importar.
+        if (prestadores.length && !this.form.value.prestadores?.length) {
+          this.form.patchValue({
+            prestadores: prestadores.map((item) => `${item.codigoUnidade}|${item.codigo}`)
+          });
+        }
 
         if (!prestadores.length) {
           this.notification.warning(
@@ -290,10 +300,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (!this.form.value.tipoInsumo) {
       this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
-    }
-
-    if (!this.form.value.tabelaPreco) {
-      this.form.patchValue({ tabelaPreco: this.tabelasPreco[0].codigo });
     }
   }
 

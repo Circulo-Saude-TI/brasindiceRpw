@@ -30,7 +30,7 @@ export interface Prestador {
 export interface ImportRequest {
   arquivo: string;
   tipoInsumo: string;
-  tabelaPreco?: string;
+  tabelasPreco: string[];
   digitacaoManual?: boolean;
   alterarValidade?: boolean;
   alterarValorZerado?: boolean;
