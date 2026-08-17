@@ -1,3 +1,19 @@
+## ⚠️ Pré-requisito: sessão autenticada no TOTVS
+
+Todas as rotas `/api/rest/v1/...` (e `/api/btb/v1/...`) ficam atrás do gateway de login do
+TOTVS Datasul. Se o navegador não tiver uma sessão autenticada válida, qualquer chamada a essas
+rotas devolve **`302 Found`** redirecionando para `/totvs-login/login?back_to=...` — não um
+`404`/`401` claro, o que confunde bastante na hora de debugar (visto ao vivo: `GET
+/api/rest/v1/brasindice/prestadores` devolvendo 302 mesmo com um `JSESSIONID` presente, porque
+esse cookie não era de uma sessão logada).
+
+**Pra testar `brasindice-rpw` isoladamente:** faça login em
+`https://<host>/totvs-login/login` primeiro, na mesma aba, e só depois abra `/brasindice-rpw/`.
+Fora de um teste manual, o esperado é que essa tela seja aberta de dentro do próprio TOTVS
+(como uma tela HTML do produto), onde a sessão já vem autenticada — não como URL solta.
+
+---
+
 # Endpoint `GET /api/rest/v1/brasindice/prestadores`
 
 Necessário para a tela "Importação Brasíndice x Prestador" (equivalente ao programa GPS
