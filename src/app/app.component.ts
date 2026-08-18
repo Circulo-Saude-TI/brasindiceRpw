@@ -62,20 +62,34 @@ export class AppComponent implements OnInit, OnDestroy {
     { value: 'Tuss', label: 'TUSS' }
   ];
 
-  get tipoInsumoOptions(): PoSelectOption[] {
-    return this.tiposInsumo.map((item) => ({ value: item.codigo, label: `${item.codigo} - ${item.descricao}` }));
+  tipoInsumoOptions: PoSelectOption[] = [];
+  tabelaPrecoOptions: PoSelectOption[] = [];
+  servidorRpwOptions: PoSelectOption[] = [];
+  prestadorOptions: PoSelectOption[] = [];
+
+  private updateTipoInsumoOptions(): void {
+    this.tipoInsumoOptions = this.tiposInsumo.map((item) => ({
+      value: item.codigo,
+      label: `${item.codigo} - ${item.descricao}`
+    }));
   }
 
-  get tabelaPrecoOptions(): PoSelectOption[] {
-    return this.tabelasPreco.map((item) => ({ value: item.codigo, label: `${item.codigo} - ${item.descricao}` }));
+  private updateTabelaPrecoOptions(): void {
+    this.tabelaPrecoOptions = this.tabelasPreco.map((item) => ({
+      value: item.codigo,
+      label: `${item.codigo} - ${item.descricao}`
+    }));
   }
 
-  get servidorRpwOptions(): PoSelectOption[] {
-    return this.servidores.map((item) => ({ value: item.codigo, label: item.descricao ? `${item.codigo} - ${item.descricao}` : item.codigo }));
+  private updateServidorRpwOptions(): void {
+    this.servidorRpwOptions = this.servidores.map((item) => ({
+      value: item.codigo,
+      label: item.descricao ? `${item.codigo} - ${item.descricao}` : item.codigo
+    }));
   }
 
-  get prestadorOptions(): PoSelectOption[] {
-    return this.prestadores.map((item) => ({
+  private updatePrestadorOptions(): void {
+    this.prestadorOptions = this.prestadores.map((item) => ({
       value: `${item.codigoUnidade}|${item.codigo}`,
       label: `${item.codigo} - ${item.nome}`
     }));
@@ -209,6 +223,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.getServidoresRpw().subscribe({
       next: (servidores) => {
         this.servidores = servidores;
+        this.updateServidorRpwOptions();
         if (servidores.length && !this.form.value.servidorRpw) {
           this.form.patchValue({ servidorRpw: servidores[0].codigo });
         }
@@ -223,6 +238,8 @@ export class AppComponent implements OnInit, OnDestroy {
         this.layouts = layouts;
         this.tiposInsumo = tipos;
         this.tabelasPreco = tabelas;
+        this.updateTipoInsumoOptions();
+        this.updateTabelaPrecoOptions();
         if (!this.form.value.tipoInsumo && this.tiposInsumo.length) {
           this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
         }
@@ -250,6 +267,7 @@ export class AppComponent implements OnInit, OnDestroy {
     this.api.getPrestadores().subscribe({
       next: (prestadores) => {
         this.prestadores = prestadores;
+        this.updatePrestadorOptions();
 
         // Comportamento do RC0110D/E: a tela abre com todos os prestadores
         // pré-selecionados; o usuário desmarca os que não quer importar.
@@ -297,6 +315,9 @@ export class AppComponent implements OnInit, OnDestroy {
         { codigo: '20', descricao: 'TUSS - Proc. Méd.' }
       ];
     }
+
+    this.updateTipoInsumoOptions();
+    this.updateTabelaPrecoOptions();
 
     if (!this.form.value.tipoInsumo) {
       this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
