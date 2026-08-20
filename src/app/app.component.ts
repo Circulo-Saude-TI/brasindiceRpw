@@ -145,22 +145,31 @@ export class AppComponent implements OnInit, OnDestroy {
     }
 
     this.validationErrors = [];
-    this.isSubmitting = true;
 
-    const payload: ImportRequest = {
-      arquivo: this.form.value.arquivo!,
-      tipoInsumo: this.form.value.tipoInsumo!,
-      tabelasPreco: this.form.value.tabelasPreco || [],
-      digitacaoManual: !!this.form.value.digitacaoManual,
-      alterarValidade: !!this.form.value.alterarValidade,
-      alterarValorZerado: !!this.form.value.alterarValorZerado,
-      dataLimiteAlt: this.serializeDate(this.form.value.dataLimiteAlt || null),
-      dataLimiteInc: this.serializeDate(this.form.value.dataLimiteInc || null),
-      importarCodigos: this.form.value.importarCodigos || undefined,
-      layout: this.defaultLayout,
-      servidorRpw: this.form.value.servidorRpw!,
-      prestadores: this.form.value.prestadores || []
-    };
+    let payload: ImportRequest;
+    try {
+      payload = {
+        arquivo: this.form.value.arquivo!,
+        tipoInsumo: this.form.value.tipoInsumo!,
+        tabelasPreco: this.form.value.tabelasPreco || [],
+        digitacaoManual: !!this.form.value.digitacaoManual,
+        alterarValidade: !!this.form.value.alterarValidade,
+        alterarValorZerado: !!this.form.value.alterarValorZerado,
+        dataLimiteAlt: this.serializeDate(this.form.value.dataLimiteAlt || null),
+        dataLimiteInc: this.serializeDate(this.form.value.dataLimiteInc || null),
+        importarCodigos: this.form.value.importarCodigos || undefined,
+        layout: this.defaultLayout,
+        servidorRpw: this.form.value.servidorRpw!,
+        prestadores: this.form.value.prestadores || []
+      };
+    } catch (error) {
+      // Evita o spinner travado para sempre se algo synchronous quebrar
+      // (ex.: NG0701 por locale nao registrado) antes da chamada HTTP.
+      this.notification.error('Erro ao preparar os dados da importação. Verifique os campos de data.');
+      return;
+    }
+
+    this.isSubmitting = true;
 
     this.api.startImport(payload).subscribe({
       next: (response) => {
