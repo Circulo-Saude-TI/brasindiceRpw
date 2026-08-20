@@ -24,11 +24,6 @@ import { BrasindiceApiService } from './core/services/brasindice-api.service';
 export class AppComponent implements OnInit, OnDestroy {
   readonly defaultLayout = 1;
 
-  // Limites para os campos de data (evita erros de digitação tipo "30/12/8000"
-  // chegarem até o servidor).
-  readonly dataMinima = new Date(new Date().getFullYear() - 2, 0, 1);
-  readonly dataMaxima = new Date(new Date().getFullYear() + 5, 11, 31);
-
   readonly form = this.fb.group({
     arquivo: ['', Validators.required],
     tipoInsumo: ['', Validators.required],
