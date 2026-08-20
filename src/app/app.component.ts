@@ -55,6 +55,9 @@ export class AppComponent implements OnInit, OnDestroy {
 
   fileName = '';
 
+  private readonly limitePrestadoresSemConfirmacao = 30;
+  aguardandoConfirmacaoQuantidade = false;
+
   private pollingTimerId?: number;
 
   readonly codigoOptions: PoSelectOption[] = [
@@ -104,6 +107,12 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadOptions();
     this.loadPrestadores();
+
+    // Se o usuário mexer na seleção depois de um aviso de "muitos prestadores",
+    // a confirmação anterior não vale mais - força reavaliar no próximo envio.
+    this.form.controls.prestadores.valueChanges.subscribe(() => {
+      this.aguardandoConfirmacaoQuantidade = false;
+    });
   }
 
   ngOnDestroy(): void {
@@ -128,21 +137,27 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
-      this.notification.warning('Informe o arquivo e os campos obrigatórios.');
+    const camposFaltando = this.listarCamposObrigatoriosFaltando();
+    if (camposFaltando.length) {
+      this.notification.warning(`Preencha os campos obrigatórios: ${camposFaltando.join(', ')}.`);
       this.form.markAllAsTouched();
       return;
     }
 
-    if (!this.form.value.prestadores?.length) {
-      this.notification.warning('Selecione ao menos um prestador.');
+    const qtdPrestadores = this.form.value.prestadores?.length || 0;
+    if (
+      qtdPrestadores > this.limitePrestadoresSemConfirmacao &&
+      !this.aguardandoConfirmacaoQuantidade
+    ) {
+      this.aguardandoConfirmacaoQuantidade = true;
+      this.notification.warning(
+        `Você selecionou ${qtdPrestadores} prestadores — bem mais que o normal para esta importação ` +
+        `(o processo padrão costuma usar uma lista curta e específica). Confira a seleção; se estiver ` +
+        'correta, clique em "Iniciar importação" novamente para confirmar.'
+      );
       return;
     }
-
-    if (!this.form.value.tabelasPreco?.length) {
-      this.notification.warning('Selecione ao menos uma tabela de preço (Qtd Moeda).');
-      return;
-    }
+    this.aguardandoConfirmacaoQuantidade = false;
 
     this.validationErrors = [];
 
@@ -278,29 +293,30 @@ export class AppComponent implements OnInit, OnDestroy {
         this.prestadores = prestadores;
         this.updatePrestadorOptions();
 
-        // Comportamento do RC0110D/E: a tela abre com todos os prestadores
-        // pré-selecionados; o usuário desmarca os que não quer importar.
-        if (prestadores.length && !this.form.value.prestadores?.length) {
-          this.form.patchValue({
-            prestadores: prestadores.map((item) => `${item.codigoUnidade}|${item.codigo}`)
-          });
-        }
-
+        // NÃO pré-selecionar nenhum prestador por padrão. O manual de operação
+        // mostra que o fluxo real é o oposto do que se poderia supor: a tela
+        // parte de tudo desmarcado (F5) e o usuário seleciona manualmente
+        // apenas uma lista curta e específica de prestadores (~20 códigos),
+        // não "todos menos alguns". Pré-marcar todos aqui criaria risco real
+        // de precificar prestadores que não deveriam ser afetados nesta
+        // importação.
         if (!prestadores.length) {
           this.notification.warning(
-            'A API não retornou prestadores (endpoint /prestadores ainda não implementado no RPW?). Selecione manualmente após configurar o servidor.'
+            'A API não retornou nenhum prestador com fator de faturamento vigente (depresfat). Verifique se há prestadores cadastrados para o período atual, ou selecione manualmente após configurar o servidor.'
           );
         }
       },
       error: (error: HttpErrorResponse) => {
         if (error.status === 404 || error.status === 405) {
           this.notification.warning(
-            'A API não expõe /prestadores. Peça ao time RPW para publicar o endpoint (ver docs/api-prestadores.md).'
+            'A API não expõe /prestadores (endpoint não encontrado). Confirme se rest/api/v1/brasindice.p foi publicado no servidor RPW.'
           );
           return;
         }
 
-        this.notification.warning('Não foi possível carregar a lista de prestadores.');
+        this.notification.warning(
+          `Não foi possível carregar a lista de prestadores (erro ${error.status || 'desconhecido'}). Tente recarregar a página; se persistir, verifique sua sessão no TOTVS.`
+        );
       },
       complete: () => {
         this.isLoadingPrestadores = false;
@@ -331,6 +347,18 @@ export class AppComponent implements OnInit, OnDestroy {
     if (!this.form.value.tipoInsumo) {
       this.form.patchValue({ tipoInsumo: this.tiposInsumo[0].codigo });
     }
+  }
+
+  private listarCamposObrigatoriosFaltando(): string[] {
+    const faltando: string[] = [];
+
+    if (!this.form.value.arquivo) faltando.push('Arquivo');
+    if (!this.form.value.tipoInsumo) faltando.push('Tipo de Insumo');
+    if (!this.form.value.tabelasPreco?.length) faltando.push('Tabela Qtd Moeda');
+    if (!this.form.value.servidorRpw) faltando.push('Servidor RPW');
+    if (!this.form.value.prestadores?.length) faltando.push('Prestadores');
+
+    return faltando;
   }
 
   private serializeDate(value: Date | string | null): string | undefined {
@@ -375,7 +403,37 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.notification.error('Erro ao iniciar importação. Verifique os dados e tente novamente.');
+    if (error.status === 0) {
+      this.notification.error(
+        'Não foi possível conectar ao servidor RPW. Verifique sua conexão ou se o serviço está no ar.'
+      );
+      return;
+    }
+
+    if (error.status === 401 || error.status === 302) {
+      this.notification.error(
+        'Sua sessão no TOTVS expirou ou não está autenticada. Faça login novamente no portal e tente aqui de novo.'
+      );
+      return;
+    }
+
+    if (error.status === 400) {
+      this.notification.error(
+        'O servidor recusou a requisição (dados inválidos). Confira arquivo, prestadores e tabelas selecionados.'
+      );
+      return;
+    }
+
+    if (error.status >= 500) {
+      this.notification.error(
+        `Erro interno no servidor RPW (${error.status}). Tente novamente em instantes; se persistir, acione o suporte.`
+      );
+      return;
+    }
+
+    this.notification.error(
+      `Erro ao iniciar importação (${error.status || 'desconhecido'}). Verifique os dados e tente novamente.`
+    );
   }
 
   private extractRowErrors(error: HttpErrorResponse): string[] {

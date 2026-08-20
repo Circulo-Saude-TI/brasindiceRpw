@@ -1,3 +1,31 @@
+## ⚠️ Escopo: esta tela só cobre a etapa "Prestador", não "Produto"
+
+O processo completo de atualização do Brasíndice (ver "MANUAL PARA ATUALIZAÇÃO DO BRASÍNDICE
+MEDICAMENTOS") tem duas etapas sequenciais e independentes:
+
+1. **Importar pro Produto** (telas nativas TOTVS RC0110C) — importa Solução/Restrito/Fábrica
+   (não Preço Máximo) para a tabela `insumos`. Usa por baixo os programas
+   `gp/dep/delainsumo200.p` (layout Brasíndice) e `gp/dep/delainsumo300.p` (layout SIMPRO), do
+   módulo RC (Revisão de Contas Médicas) — **não fazem parte deste projeto e não são tocados
+   por `brasindice-rpw`**. Essa etapa continua 100% manual, feita direto no TOTVS.
+2. **Importar pro Prestador** (telas nativas RC0110D/E, programa `gp/dep/ImportaBrasPrestador.p`)
+   — importa os 4 arquivos (incluindo Preço Máximo) e grava/atualiza `preinpr`/`insupres` por
+   prestador. **É essa etapa que `brasindice-rpw` + `rest/api/v1/brasindice.p` substituem.**
+
+Se a etapa 1 (Produto) não tiver sido feita antes, a importação por Prestador processa
+normalmente, mas os insumos que ainda não existem em `insumos` são simplesmente ignorados (sem
+erro visível) — vale reforçar com quem opera a tela que a ordem das etapas continua importando.
+
+## ⚠️ Seleção de prestadores: lista curta, não "todos menos alguns"
+
+O manual de operação (passo "Seleção") mostra que o fluxo real é: **F5 desmarca todos**, depois
+o usuário seleciona manualmente **apenas uma lista curta e específica** de prestadores (no
+exemplo visto, ~20 códigos). Não é "todos pré-marcados, desmarque os que não quer" — é o
+oposto. `app.component.ts` foi ajustado para refletir isso: a tela abre com **nenhum prestador
+pré-selecionado**, e há um aviso de confirmação se o usuário marcar mais de 30 prestadores de
+uma vez (limite arbitrário, ajustável em `limitePrestadoresSemConfirmacao`), já que isso foge do
+padrão observado e pode indicar seleção acidental.
+
 ## ⚠️ Pré-requisito: sessão autenticada no TOTVS
 
 Todas as rotas `/api/rest/v1/...` (e `/api/btb/v1/...`) ficam atrás do gateway de login do
