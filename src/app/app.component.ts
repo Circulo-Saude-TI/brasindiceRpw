@@ -7,6 +7,7 @@ import {
     PoNotificationService,
     PoSelectOption
 } from '@po-ui/ng-components';
+import { Observable, switchMap } from 'rxjs';
 import { ImportRequest, ImportStatus, Layout, Prestador, RowError, ServidorRpw, TabelaPreco, TipoInsumo } from './core/models/brasindice.models';
 import { BrasindiceApiService } from './core/services/brasindice-api.service';
 
@@ -54,6 +55,11 @@ export class AppComponent implements OnInit, OnDestroy {
   isCheckingStatus = false;
 
   fileName = '';
+  private selectedFile: File | null = null;
+
+  // Servidor RPW usado para receber o arquivo via /upload — independente do
+  // "Servidor RPW" escolhido no formulário, que é usado apenas para /importar.
+  private readonly uploadServidorRpw = 'rpw-log';
 
   private readonly limitePrestadoresSemConfirmacao = 30;
   aguardandoConfirmacaoQuantidade = false;
@@ -125,15 +131,34 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (!file) {
       this.fileName = '';
+      this.selectedFile = null;
+      this.form.patchValue({ arquivo: '' });
       return;
     }
 
     this.fileName = file.name;
-    // Pré-preenche com o caminho padrão no servidor; usuário pode editar antes de enviar
-    const currentPath = this.form.value.arquivo;
-    if (!currentPath) {
-      this.form.patchValue({ arquivo: `t:/brasindice/${file.name}` });
-    }
+    this.selectedFile = file;
+    // O valor real de "arquivo" (caminho visível ao backend) só é conhecido
+    // após o upload em onSubmit(); aqui só marcamos o campo como preenchido
+    // para fins de validação do formulário.
+    this.form.patchValue({ arquivo: file.name });
+  }
+
+  private readFileAsBase64(file: File): Observable<string> {
+    return new Observable<string>((subscriber) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.substring(result.indexOf(',') + 1);
+        subscriber.next(base64);
+        subscriber.complete();
+      };
+
+      reader.onerror = () => subscriber.error(reader.error);
+
+      reader.readAsDataURL(file);
+    });
   }
 
   onSubmit(): void {
@@ -161,10 +186,16 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.validationErrors = [];
 
+    const selectedFile = this.selectedFile;
+    if (!selectedFile) {
+      this.notification.warning('Selecione o arquivo a ser importado.');
+      return;
+    }
+
     let payload: ImportRequest;
     try {
       payload = {
-        arquivo: this.form.value.arquivo!,
+        arquivo: '', // preenchido após o upload em base64, mais abaixo
         tipoInsumo: this.form.value.tipoInsumo!,
         tabelasPreco: this.form.value.tabelasPreco || [],
         digitacaoManual: !!this.form.value.digitacaoManual,
@@ -186,26 +217,55 @@ export class AppComponent implements OnInit, OnDestroy {
 
     this.isSubmitting = true;
 
-    this.api.startImport(payload).subscribe({
-      next: (response) => {
-        const pedido = response.pedido ?? response.jobId;
-        if (response.success !== false && pedido) {
-          this.lastPedido = pedido;
-          this.status = null;
-          this.notification.success(response.message || `Pedido RPW criado com sucesso: ${pedido}.`);
-          this.refreshStatus(true);
-          this.startStatusPolling();
-        } else {
-          this.notification.error(response.error || 'Não foi possível iniciar a importação.');
+    // O AppServer/servidor RPW roda em outro processo e não enxerga unidades de
+    // rede mapeadas na sessão do usuário (ex.: T:\), então o arquivo é lido do
+    // disco local do navegador, enviado em base64 via /upload, e só então o
+    // caminho retornado (já visível ao backend) é usado no payload de /importar.
+    this.readFileAsBase64(selectedFile)
+      .pipe(
+        switchMap((conteudoBase64) =>
+          this.api.uploadArquivo({
+            nomeArquivo: selectedFile.name,
+            conteudoBase64,
+            servidorRpw: this.uploadServidorRpw
+          })
+        ),
+        switchMap((uploadResponse) => {
+          if (uploadResponse.success === false || !uploadResponse.arquivo) {
+            throw new Error(
+              uploadResponse.error || uploadResponse.message || 'Não foi possível enviar o arquivo para o servidor RPW.'
+            );
+          }
+
+          payload.arquivo = uploadResponse.arquivo;
+          return this.api.startImport(payload);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          const pedido = response.pedido ?? response.jobId;
+          if (response.success !== false && pedido) {
+            this.lastPedido = pedido;
+            this.status = null;
+            this.notification.success(response.message || `Pedido RPW criado com sucesso: ${pedido}.`);
+            this.refreshStatus(true);
+            this.startStatusPolling();
+          } else {
+            this.notification.error(response.error || 'Não foi possível iniciar a importação.');
+          }
+        },
+        error: (error: HttpErrorResponse | Error) => {
+          if (error instanceof HttpErrorResponse) {
+            this.handleSubmitError(error);
+          } else {
+            this.notification.error(error.message);
+          }
+          this.isSubmitting = false;
+        },
+        complete: () => {
+          this.isSubmitting = false;
         }
-      },
-      error: (error: HttpErrorResponse) => {
-        this.handleSubmitError(error);
-      },
-      complete: () => {
-        this.isSubmitting = false;
-      }
-    });
+      });
   }
 
   refreshStatus(silent = false): void {

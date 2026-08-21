@@ -79,7 +79,7 @@
               <div class="upload-card-header">
                 <div>
                   <span class="upload-label">Arquivo *</span>
-                  <p class="upload-hint">Selecione o arquivo local para preencher o caminho automaticamente.</p>
+                  <p class="upload-hint">Selecione o arquivo local; ele será enviado ao servidor RPW automaticamente ao iniciar a importação.</p>
                 </div>
                 <po-button
                   p-label="Escolher arquivo"
@@ -102,18 +102,9 @@
                 <div class="upload-icon">⬆</div>
                 <div class="upload-text">
                   <strong>{{ fileName || 'Clique para selecionar um arquivo' }}</strong>
-                  <span>{{ fileName ? 'Caminho pré-preenchido abaixo — ajuste se necessário.' : 'Formatos aceitos: .txt e .csv' }}</span>
+                  <span>{{ fileName ? 'Arquivo pronto para envio ao servidor RPW.' : 'Formatos aceitos: .txt e .csv' }}</span>
                 </div>
               </div>
-
-              <po-input
-                formControlName="arquivo"
-                p-label="Caminho no Servidor RPW *"
-                p-placeholder="Ex.: t:/brasindice/arquivo.csv"
-                p-icon="po-icon-edit"
-                name="arquivo"
-                class="path-input"
-              ></po-input>
             </div>
           </div>
 

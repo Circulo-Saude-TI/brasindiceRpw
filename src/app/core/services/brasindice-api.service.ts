@@ -10,7 +10,9 @@ import {
   Prestador,
   ServidorRpw,
   TabelaPreco,
-  TipoInsumo
+  TipoInsumo,
+  UploadRequest,
+  UploadResponse
 } from '../models/brasindice.models';
 
 @Injectable({ providedIn: 'root' })
@@ -91,6 +93,14 @@ export class BrasindiceApiService {
         }),
         catchError(() => of([]))
       );
+  }
+
+  // O AppServer/servidor RPW não enxerga unidades de rede mapeadas na sessão do
+  // usuário (ex.: T:\), então o arquivo precisa ser enviado em base64 para o
+  // servidor primeiro; o "arquivo" retornado (caminho já visível ao backend) é
+  // o que deve ser usado no payload de /importar.
+  uploadArquivo(payload: UploadRequest): Observable<UploadResponse> {
+    return this.http.post<UploadResponse>(`${this.baseUrl}/upload`, payload);
   }
 
   startImport(payload: ImportRequest): Observable<ImportResponse> {

@@ -27,6 +27,19 @@ export interface Prestador {
   nome: string;
 }
 
+export interface UploadRequest {
+  nomeArquivo: string;
+  conteudoBase64: string;
+  servidorRpw: string;
+}
+
+export interface UploadResponse {
+  success?: boolean;
+  arquivo?: string;
+  error?: string;
+  message?: string;
+}
+
 export interface ImportRequest {
   arquivo: string;
   tipoInsumo: string;
