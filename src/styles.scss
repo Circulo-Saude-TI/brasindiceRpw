@@ -35,3 +35,31 @@ body {
   font-family: var(--font-family-theme);
   background-color: #faf7f0;
 }
+
+/*
+ * O po-multiselect renderiza os itens selecionados como po-tag (removable),
+ * cuja cor vem de custom properties genéricas (--color, --border-color, --text-color)
+ * herdadas do contexto onde o componente é montado. Ao rodar embutido no shell do
+ * TOTVS Saúde, essas variáveis são sobrescritas pelo tema do host (daí a cor estranha
+ * das tags). Fixamos os valores diretamente na tag para não depender da herança.
+ */
+.po-tag.po-tag-removable {
+  --color: rgba(1, 54, 155, 0.08);
+  --border-color: rgba(1, 54, 155, 0.3);
+  --text-color: var(--color-primary);
+  --color-icon: var(--color-primary);
+  --color-hover: rgba(1, 54, 155, 0.16);
+  background-color: var(--color) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-color) !important;
+}
+
+.po-tag.po-tag-removable .po-tag-remove {
+  color: var(--color-icon) !important;
+  border-left-color: var(--border-color) !important;
+}
+
+.po-multiselect-input {
+  background-color: #ffffff !important;
+  border-color: #ece2d2 !important;
+}
