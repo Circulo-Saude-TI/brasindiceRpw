@@ -5,10 +5,11 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
     PoModule,
     PoNotificationService,
-    PoSelectOption
+    PoSelectOption,
+    PoTagType
 } from '@po-ui/ng-components';
 import { Observable, switchMap } from 'rxjs';
-import { ImportRequest, ImportStatus, Layout, Prestador, RowError, ServidorRpw, TabelaPreco, TipoInsumo } from './core/models/brasindice.models';
+import { ImportRequest, ImportStatus, Layout, LayoutBrasindice, Prestador, RowError, ServidorRpw, TabelaPreco, TipoInsumo } from './core/models/brasindice.models';
 import { BrasindiceApiService } from './core/services/brasindice-api.service';
 
 @Component({
@@ -27,8 +28,12 @@ export class AppComponent implements OnInit, OnDestroy {
 
   readonly form = this.fb.group({
     arquivo: ['', Validators.required],
+    layout: ['' as LayoutBrasindice | '', Validators.required],
+    edicao: [''],
+    dirSaida: [''],
     tipoInsumo: ['', Validators.required],
     tabelasPreco: [[] as string[], Validators.required],
+    simular: [false],
     digitacaoManual: [false],
     alterarValidade: [false],
     alterarValorZerado: [false],
@@ -47,6 +52,10 @@ export class AppComponent implements OnInit, OnDestroy {
   isLoadingPrestadores = false;
   status: ImportStatus | null = null;
   lastPedido?: number;
+  lastIdExec?: number | string;
+  lastLayout?: string;
+  lastEdicao?: string;
+  lastSimular = false;
   validationErrors: string[] = [];
 
   isLoadingOptions = false;
@@ -69,6 +78,13 @@ export class AppComponent implements OnInit, OnDestroy {
   readonly codigoOptions: PoSelectOption[] = [
     { value: 'Brasindice', label: 'Brasíndice' },
     { value: 'Tuss', label: 'TUSS' }
+  ];
+
+  readonly layoutOptions: PoSelectOption[] = [
+    { value: 'SOLUCAO', label: 'Solução' },
+    { value: 'RESTRITO', label: 'Restrito' },
+    { value: 'FABRICA', label: 'Fábrica' },
+    { value: 'PRECO-MAXIMO', label: 'Preço Máximo' }
   ];
 
   tipoInsumoOptions: PoSelectOption[] = [];
@@ -204,7 +220,10 @@ export class AppComponent implements OnInit, OnDestroy {
         dataLimiteAlt: this.serializeDate(this.form.value.dataLimiteAlt || null),
         dataLimiteInc: this.serializeDate(this.form.value.dataLimiteInc || null),
         importarCodigos: this.form.value.importarCodigos || undefined,
-        layout: this.defaultLayout,
+        layout: (this.form.value.layout || undefined) as LayoutBrasindice | undefined,
+        edicao: this.form.value.edicao?.trim() || undefined,
+        dirSaida: this.form.value.dirSaida?.trim() || undefined,
+        simular: !!this.form.value.simular,
         servidorRpw: this.form.value.servidorRpw!,
         prestadores: this.form.value.prestadores || []
       };
@@ -246,8 +265,15 @@ export class AppComponent implements OnInit, OnDestroy {
           const pedido = response.pedido ?? response.jobId;
           if (response.success !== false && pedido) {
             this.lastPedido = pedido;
+            this.lastIdExec = response.idExec;
+            this.lastLayout = response.layout ?? payload.layout;
+            this.lastEdicao = response.edicao ?? payload.edicao;
+            this.lastSimular = !!payload.simular;
             this.status = null;
-            this.notification.success(response.message || `Pedido RPW criado com sucesso: ${pedido}.`);
+            this.notification.success(
+              response.message ||
+                `Pedido RPW criado com sucesso: ${pedido}${response.idExec ? ` (exec ${response.idExec})` : ''}.`
+            );
             this.refreshStatus(true);
             this.startStatusPolling();
           } else {
@@ -276,9 +302,13 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isCheckingStatus = true;
     this.api.getImportStatus(this.lastPedido).subscribe({
       next: (status) => {
+        const jaEstavaFinalizado = this.status ? this.isFinalStatus(this.status) : false;
         this.status = status;
-        if (this.isFinalStatus(status.status)) {
+        if (this.isFinalStatus(status)) {
           this.stopStatusPolling();
+          if (!jaEstavaFinalizado) {
+            this.notificarConclusao(status);
+          }
         }
       },
       error: (error: HttpErrorResponse) => {
@@ -413,6 +443,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const faltando: string[] = [];
 
     if (!this.form.value.arquivo) faltando.push('Arquivo');
+    if (!this.form.value.layout) faltando.push('Layout');
     if (!this.form.value.tipoInsumo) faltando.push('Tipo de Insumo');
     if (!this.form.value.tabelasPreco?.length) faltando.push('Tabela Qtd Moeda');
     if (!this.form.value.servidorRpw) faltando.push('Servidor RPW');
@@ -449,9 +480,55 @@ export class AppComponent implements OnInit, OnDestroy {
     this.pollingTimerId = undefined;
   }
 
-  private isFinalStatus(status?: string): boolean {
-    const normalized = (status || '').toLowerCase();
-    return ['done', 'completed', 'success', 'error', 'failed'].includes(normalized);
+  // O polling para quando a "situacao" (resultado de negócio) é terminal;
+  // "status" (fila RPW) é só fallback para respostas antigas sem "situacao".
+  private isFinalStatus(status?: ImportStatus | null): boolean {
+    const situacao = (status?.situacao || '').toUpperCase();
+    if (['OK', 'OK_COM_ERROS', 'SIMULADO', 'SIMULADO_COM_ERROS', 'ERRO'].includes(situacao)) {
+      return true;
+    }
+
+    const fila = (status?.status || '').toLowerCase();
+    return ['done', 'completed', 'success', 'error', 'failed', 'finalizado'].includes(fila);
+  }
+
+  readonly tagInfo = PoTagType.Info;
+
+  situacaoTagType(situacao?: string): PoTagType {
+    switch ((situacao || '').toUpperCase()) {
+      case 'OK':
+      case 'SIMULADO':
+        return PoTagType.Success;
+      case 'OK_COM_ERROS':
+      case 'SIMULADO_COM_ERROS':
+        return PoTagType.Warning;
+      case 'ERRO':
+        return PoTagType.Danger;
+      default:
+        return PoTagType.Info;
+    }
+  }
+
+  private notificarConclusao(status: ImportStatus): void {
+    const situacao = (status.situacao || '').toUpperCase();
+    const resumo =
+      `criados: ${status.criados ?? 0}, alterados: ${status.alterados ?? 0}, ` +
+      `erros: ${status.erros ?? 0}`;
+
+    if (situacao === 'ERRO') {
+      this.notification.error(
+        status.retorno || status.message || `Importação finalizada com erro (${resumo}).`
+      );
+      return;
+    }
+
+    if (situacao === 'OK_COM_ERROS' || situacao === 'SIMULADO_COM_ERROS') {
+      this.notification.warning(`Importação finalizada com erros — ${resumo}.`);
+      return;
+    }
+
+    const prefixo = situacao === 'SIMULADO' ? 'Simulação concluída' : 'Importação finalizada';
+    this.notification.success(`${prefixo} — ${resumo}.`);
   }
 
   private handleSubmitError(error: HttpErrorResponse): void {

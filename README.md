@@ -49,44 +49,76 @@ npm test
 
 A aplicação espera uma API REST disponível em `/api/v1/brasindice/` com os seguintes endpoints:
 
-### POST /api/v1/brasindice/import
-Inicia uma importação Brasíndice via RPW
+### POST /api/rest/v1/brasindice/importar
+Inicia uma importação Brasíndice via RPW. É **1 pedido por arquivo/layout**
+(o front chama uma vez por arquivo).
 
 **Request Body:**
 ```json
 {
-  "arquivo": "base64_encoded_file_content",
-  "tipo-insumo": "01",
-  "tabela-preco": "01",
-  "digitacao-manual": false,
-  "alterar-validade": false,
-  "alterar-valor-zerado": false,
-  "data-limite-alt": "2026-12-31",
-  "data-limite-inc": "2026-12-31",
-  "importar-codigos": "Brasindice",
-  "layout": 1,
-  "servidor-rpw": "rpw-homolog"
+  "arquivo": "caminho/no/servidor/retornado/pelo/upload",
+  "tipoInsumo": "01",
+  "tabelasPreco": ["CBH/09", "CBH/14", "TUS/09"],
+  "prestadores": ["unid|prest"],
+  "layout": "SOLUCAO",
+  "edicao": "1093",
+  "dirSaida": "B:\\NUCLEO_PARAMETRIZACAO_E_REGULACAO\\BRASINDICE\\1093",
+  "simular": false,
+  "digitacaoManual": false,
+  "alterarValidade": false,
+  "alterarValorZerado": false,
+  "dataLimiteAlt": "31/12/2026",
+  "dataLimiteInc": "31/12/2026",
+  "importarCodigos": "Brasindice",
+  "servidorRpw": "rpw-homolog"
 }
 ```
+
+Campos novos (todos opcionais — o backend lê com `if oPayload:Has(...)`):
+
+| Campo | Valores | Observação |
+|-------|---------|------------|
+| `layout` | `SOLUCAO` \| `RESTRITO` \| `FABRICA` \| `PRECO-MAXIMO` | Sem ele tudo fica rotulado `BRASINDICE` no .LST/.ERR/tabela/log |
+| `edicao` | nº da revista (ex.: `"1093"`) | Compõe o caminho dos arquivos e o `es-bras-log` |
+| `dirSaida` | pasta de rede visível ao servidor RPW | Recomendado sempre enviar; senão usa fallback placeholder |
+| `simular` | `true` / `false` | Expõe o "Simular?" do manual |
 
 **Response:**
 ```json
 {
   "success": true,
-  "jobId": 12345,
+  "pedido": 12345,
+  "idExec": 987,
+  "layout": "SOLUCAO",
+  "edicao": "1093",
   "message": "Pedido RPW criado com sucesso."
 }
 ```
 
-### GET /api/v1/brasindice/import/{jobId}
-Consulta o status de uma importação
+### GET /api/rest/v1/brasindice/status?pedido=N
+Consulta o status de uma importação.
 
-**Response:**
+- `status` = estado da fila RPW (`aguardando` / `executando` / `finalizado`)
+- `situacao` = resultado de negócio (`AGUARDANDO` / `EXECUTANDO` / `OK` / `OK_COM_ERROS` / `SIMULADO` / `SIMULADO_COM_ERROS` / `ERRO`)
+
+O polling do front para quando `situacao` é `OK` / `OK_COM_ERROS` / `SIMULADO*` / `ERRO`.
+
+**Response (após o alvo rodar):**
 ```json
 {
-  "jobId": 12345,
-  "status": "processing",
-  "message": "Importação em progresso"
+  "pedido": 12345,
+  "status": "finalizado",
+  "situacao": "OK_COM_ERROS",
+  "criados": 120,
+  "alterados": 45,
+  "erros": 3,
+  "retorno": "Processado com 3 rejeições",
+  "arquivoLst": "B:\\...\\1093\\SOLUCAO.LST",
+  "arquivoErr": "B:\\...\\1093\\SOLUCAO.ERR",
+  "arquivoJson": "B:\\...\\1093\\SOLUCAO.JSON",
+  "inicio": "02/09/2026 14:30:00",
+  "fim": "02/09/2026 14:32:10",
+  "simulado": false
 }
 ```
 
@@ -282,9 +314,13 @@ npm test
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | arquivo | File | ✓ | Upload TXT/CSV file |
-| layout | Select | ✓ | Data layout format |
+| layout | Select | ✓ | Layout de negócio: SOLUCAO / RESTRITO / FABRICA / PRECO-MAXIMO |
+| edicao | Input | | Número da revista (ex.: 1093) |
+| dirSaida | Input | | Pasta de rede visível ao servidor RPW p/ .LST/.ERR/.JSON |
 | tipoInsumo | Select | ✓ | Item type (medicament, daily, etc.) |
-| tabelaPreco | Select | | Pricing table reference |
+| tabelasPreco | MultiSelect | ✓ | Uma ou mais tabelas (ex.: CBH/09, TUS/09) |
+| prestadores | MultiSelect | ✓ | Lista `unid\|prest`; só os marcados têm preço atualizado |
+| simular | Switch | | Simular sem gravar alterações |
 | importarCodigos | Select | | Code format (Brasíndice/TUSS) |
 | digitacaoManual | Switch | | Allow manual entry |
 | alterarValidade | Switch | | Modify validity dates |

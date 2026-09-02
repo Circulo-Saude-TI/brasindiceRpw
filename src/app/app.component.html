@@ -110,6 +110,35 @@
 
           <div class="field-row field-row-2">
             <po-select
+              formControlName="layout"
+              p-label="Layout *"
+              [p-options]="layoutOptions"
+              p-placeholder="Selecione o layout do arquivo"
+              p-help="Define como o arquivo é rotulado no .LST/.ERR, na tabela e no log. É 1 pedido por arquivo/layout."
+              name="layout"
+            ></po-select>
+
+            <po-input
+              formControlName="edicao"
+              p-label="Edição (revista)"
+              p-placeholder="Ex.: 1093"
+              p-help="Número da revista Brasíndice. Compõe o caminho dos arquivos e o es-bras-log."
+              name="edicao"
+            ></po-input>
+          </div>
+
+          <div class="field-row field-row-single">
+            <po-input
+              formControlName="dirSaida"
+              p-label="Pasta de saída (rede)"
+              p-placeholder="Ex.: B:\NUCLEO_PARAMETRIZACAO_E_REGULACAO\BRASINDICE\1093"
+              p-help="Pasta de rede visível ao servidor RPW onde serão gravados .LST/.ERR/.JSON. Se vazio, o backend usa um fallback placeholder."
+              name="dirSaida"
+            ></po-input>
+          </div>
+
+          <div class="field-row field-row-2">
+            <po-select
               formControlName="tipoInsumo"
               p-label="Tipo de Insumo *"
               [p-options]="tipoInsumoOptions"
@@ -178,6 +207,9 @@
 
         <div class="toggles-grid">
           <div class="toggle-card">
+            <po-switch formControlName="simular" p-label="Simular? (não grava alterações)"></po-switch>
+          </div>
+          <div class="toggle-card">
             <po-switch formControlName="digitacaoManual" p-label="Permitir digitação manual"></po-switch>
           </div>
           <div class="toggle-card">
@@ -216,17 +248,72 @@
             <div>
               <span class="status-label">Pedido RPW</span>
               <div class="status-value">#{{ lastPedido }}</div>
+              <div class="status-sub" *ngIf="lastLayout || lastEdicao || lastIdExec">
+                <span *ngIf="lastLayout">Layout: {{ lastLayout }}</span>
+                <span *ngIf="lastEdicao">Edição: {{ lastEdicao }}</span>
+                <span *ngIf="lastIdExec">Exec: {{ lastIdExec }}</span>
+              </div>
             </div>
 
-            <po-tag
-              *ngIf="status"
-              [p-value]="status.status || 'Pendente'"
-            ></po-tag>
+            <div class="status-tags">
+              <po-tag
+                *ngIf="status"
+                p-label="Fila"
+                [p-value]="status.status || 'Pendente'"
+              ></po-tag>
+              <po-tag
+                *ngIf="status?.situacao"
+                p-label="Situação"
+                [p-value]="status?.situacao || ''"
+                [p-type]="situacaoTagType(status?.situacao)"
+              ></po-tag>
+              <po-tag
+                *ngIf="status?.simulado || lastSimular"
+                p-value="Simulado"
+                [p-type]="tagInfo"
+              ></po-tag>
+            </div>
           </div>
 
-          <div class="status-message-wrapper" *ngIf="status?.message; else aguardandoStatus">
+          <div class="status-counters" *ngIf="status?.situacao">
+            <div class="counter">
+              <span>Criados</span>
+              <strong>{{ status?.criados ?? 0 }}</strong>
+            </div>
+            <div class="counter">
+              <span>Alterados</span>
+              <strong>{{ status?.alterados ?? 0 }}</strong>
+            </div>
+            <div class="counter counter-erros" [class.has-erros]="(status?.erros ?? 0) > 0">
+              <span>Erros</span>
+              <strong>{{ status?.erros ?? 0 }}</strong>
+            </div>
+          </div>
+
+          <dl class="status-files" *ngIf="status?.arquivoLst || status?.arquivoErr || status?.arquivoJson">
+            <div *ngIf="status?.arquivoLst">
+              <dt>.LST</dt>
+              <dd>{{ status?.arquivoLst }}</dd>
+            </div>
+            <div *ngIf="status?.arquivoErr">
+              <dt>.ERR</dt>
+              <dd>{{ status?.arquivoErr }}</dd>
+            </div>
+            <div *ngIf="status?.arquivoJson">
+              <dt>.JSON</dt>
+              <dd>{{ status?.arquivoJson }}</dd>
+            </div>
+          </dl>
+
+          <div class="status-times" *ngIf="status?.inicio || status?.fim">
+            <span *ngIf="status?.inicio"><strong>Início:</strong> {{ status?.inicio }}</span>
+            <span *ngIf="status?.fim"><strong>Fim:</strong> {{ status?.fim }}</span>
+          </div>
+
+          <div class="status-message-wrapper" *ngIf="status?.retorno || status?.message; else aguardandoStatus">
             <div class="status-message">
-              <strong>Mensagem:</strong> {{ status?.message }}
+              <strong>{{ status?.retorno ? 'Retorno:' : 'Mensagem:' }}</strong>
+              {{ status?.retorno || status?.message }}
             </div>
           </div>
           <ng-template #aguardandoStatus>
@@ -254,9 +341,10 @@
         <div class="help-card">
           <h3 class="help-title">Boas práticas</h3>
           <ul class="help-list">
-            <li>Layout padrão Brasíndice (1) aplicado automaticamente.</li>
+            <li>Selecione o layout correspondente ao arquivo (1 pedido por arquivo).</li>
+            <li>Informe a edição e a pasta de saída para rotular .LST/.ERR/.JSON.</li>
+            <li>Use "Simular?" para validar sem gravar alterações.</li>
             <li>Use datas limite somente quando necessário.</li>
-            <li>Valide o caminho do arquivo no servidor RPW.</li>
           </ul>
         </div>
       </aside>

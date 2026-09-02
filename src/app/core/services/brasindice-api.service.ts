@@ -118,8 +118,19 @@ export class BrasindiceApiService {
       prestadores: payload.prestadores ?? []
     };
 
+    // Campos novos, todos opcionais (o backend lê com if oPayload:Has(...)),
+    // enviados apenas quando preenchidos.
     if (payload.layout !== undefined) {
       body['layout'] = payload.layout;
+    }
+    if (payload.edicao !== undefined) {
+      body['edicao'] = payload.edicao;
+    }
+    if (payload.dirSaida !== undefined) {
+      body['dirSaida'] = payload.dirSaida;
+    }
+    if (payload.simular !== undefined) {
+      body['simular'] = payload.simular;
     }
 
     return this.http
@@ -128,6 +139,8 @@ export class BrasindiceApiService {
           nrPedido?: number;
           pedido?: number;
           Pedido?: number;
+          idExec?: number | string;
+          IdExec?: number | string;
           mensagem?: string;
           Mensagem?: string;
         }
@@ -140,6 +153,7 @@ export class BrasindiceApiService {
           ...response,
           success: response.success ?? true,
           pedido: response.pedido ?? response.Pedido ?? response.nrPedido ?? response.jobId,
+          idExec: response.idExec ?? response.IdExec,
           message: response.message ?? response.mensagem ?? response.Mensagem
         }))
       );
@@ -152,24 +166,56 @@ export class BrasindiceApiService {
           nrPedido?: number;
           pedido?: number;
           Pedido?: number;
+          Status?: string;
           situacao?: string;
           Situacao?: string;
           mensagem?: string;
           Mensagem?: string;
           retorno?: string;
           Retorno?: string;
+          criados?: number;
+          Criados?: number;
+          alterados?: number;
+          Alterados?: number;
+          erros?: number;
+          Erros?: number;
+          arquivoLst?: string;
+          ArquivoLst?: string;
+          arquivoErr?: string;
+          ArquivoErr?: string;
+          arquivoJson?: string;
+          ArquivoJson?: string;
+          inicio?: string;
+          Inicio?: string;
+          fim?: string;
+          Fim?: string;
+          simulado?: boolean;
+          Simulado?: boolean;
         }
       >(`${this.baseUrl}/status?pedido=${pedido}`)
       .pipe(
         map((response) => ({
           pedido: response.pedido ?? response.Pedido ?? response.nrPedido ?? pedido,
-          status: response.status ?? response.situacao ?? response.Situacao ?? 'pending',
+          // "status" = estado da fila RPW; "situacao" = resultado de negócio.
+          // São campos distintos e ambos são preservados.
+          status: response.status ?? response.Status ?? 'pending',
+          situacao: response.situacao ?? response.Situacao,
           message:
             response.message ??
             response.mensagem ??
             response.Mensagem ??
             response.retorno ??
-            response.Retorno
+            response.Retorno,
+          criados: response.criados ?? response.Criados,
+          alterados: response.alterados ?? response.Alterados,
+          erros: response.erros ?? response.Erros,
+          retorno: response.retorno ?? response.Retorno,
+          arquivoLst: response.arquivoLst ?? response.ArquivoLst,
+          arquivoErr: response.arquivoErr ?? response.ArquivoErr,
+          arquivoJson: response.arquivoJson ?? response.ArquivoJson,
+          inicio: response.inicio ?? response.Inicio,
+          fim: response.fim ?? response.Fim,
+          simulado: response.simulado ?? response.Simulado
         }))
       );
   }
