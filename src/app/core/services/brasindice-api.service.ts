@@ -143,6 +143,12 @@ export class BrasindiceApiService {
           IdExec?: number | string;
           mensagem?: string;
           Mensagem?: string;
+          pastaSaida?: string;
+          PastaSaida?: string;
+          arquivoLst?: string;
+          ArquivoLst?: string;
+          arquivoErr?: string;
+          ArquivoErr?: string;
         }
       >(
         `${this.baseUrl}/importar`,
@@ -154,7 +160,10 @@ export class BrasindiceApiService {
           success: response.success ?? true,
           pedido: response.pedido ?? response.Pedido ?? response.nrPedido ?? response.jobId,
           idExec: response.idExec ?? response.IdExec,
-          message: response.message ?? response.mensagem ?? response.Mensagem
+          message: response.message ?? response.mensagem ?? response.Mensagem,
+          pastaSaida: response.pastaSaida ?? response.PastaSaida,
+          arquivoLst: response.arquivoLst ?? response.ArquivoLst,
+          arquivoErr: response.arquivoErr ?? response.ArquivoErr
         }))
       );
   }

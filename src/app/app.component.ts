@@ -56,6 +56,11 @@ export class AppComponent implements OnInit, OnDestroy {
   lastLayout?: string;
   lastEdicao?: string;
   lastSimular = false;
+  // Caminhos devolvidos pelo POST /importar, exibidos assim que o pedido é
+  // criado (o GET /status confirma/atualiza depois).
+  lastPastaSaida?: string;
+  lastArquivoLst?: string;
+  lastArquivoErr?: string;
   validationErrors: string[] = [];
 
   isLoadingOptions = false;
@@ -269,10 +274,16 @@ export class AppComponent implements OnInit, OnDestroy {
             this.lastLayout = response.layout ?? payload.layout;
             this.lastEdicao = response.edicao ?? payload.edicao;
             this.lastSimular = !!payload.simular;
+            this.lastPastaSaida = response.pastaSaida;
+            this.lastArquivoLst = response.arquivoLst;
+            this.lastArquivoErr = response.arquivoErr;
             this.status = null;
+            const resumoPedido = `Pedido RPW criado com sucesso: ${pedido}${response.idExec ? ` (exec ${response.idExec})` : ''}.`;
             this.notification.success(
               response.message ||
-                `Pedido RPW criado com sucesso: ${pedido}${response.idExec ? ` (exec ${response.idExec})` : ''}.`
+                (response.pastaSaida
+                  ? `${resumoPedido} Relatórios em: ${response.pastaSaida}`
+                  : resumoPedido)
             );
             this.refreshStatus(true);
             this.startStatusPolling();

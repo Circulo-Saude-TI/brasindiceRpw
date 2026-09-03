@@ -130,9 +130,9 @@
           <div class="field-row field-row-single">
             <po-input
               formControlName="dirSaida"
-              p-label="Pasta de saída (rede)"
-              p-placeholder="Ex.: B:\NUCLEO_PARAMETRIZACAO_E_REGULACAO\BRASINDICE\1093"
-              p-help="Pasta de rede visível ao servidor RPW onde serão gravados .LST/.ERR/.JSON. Se vazio, o backend usa um fallback placeholder."
+              p-label="Pasta de saída dos relatórios"
+              p-placeholder="Ex.: T:\BRASINDICE\1099\"
+              p-help="Caminho onde o servidor RPW grava os .LST/.ERR — precisa ser válido e gravável do lado do RPW (T:\..., V:\..., \\servidor\share\...). A última subpasta é criada se o pai já existir. Se vazio, o backend usa \\srvfs\informativo\BRASINDICE\SEM-EDICAO\."
               name="dirSaida"
             ></po-input>
           </div>
@@ -290,14 +290,21 @@
             </div>
           </div>
 
-          <dl class="status-files" *ngIf="status?.arquivoLst || status?.arquivoErr || status?.arquivoJson">
-            <div *ngIf="status?.arquivoLst">
-              <dt>.LST</dt>
-              <dd>{{ status?.arquivoLst }}</dd>
+          <dl
+            class="status-files"
+            *ngIf="status?.arquivoLst || status?.arquivoErr || status?.arquivoJson || lastPastaSaida || lastArquivoLst || lastArquivoErr"
+          >
+            <div *ngIf="lastPastaSaida">
+              <dt>Pasta</dt>
+              <dd>{{ lastPastaSaida }}</dd>
             </div>
-            <div *ngIf="status?.arquivoErr">
+            <div *ngIf="status?.arquivoLst || lastArquivoLst">
+              <dt>.LST</dt>
+              <dd>{{ status?.arquivoLst || lastArquivoLst }}</dd>
+            </div>
+            <div *ngIf="status?.arquivoErr || lastArquivoErr">
               <dt>.ERR</dt>
-              <dd>{{ status?.arquivoErr }}</dd>
+              <dd>{{ status?.arquivoErr || lastArquivoErr }}</dd>
             </div>
             <div *ngIf="status?.arquivoJson">
               <dt>.JSON</dt>

@@ -70,8 +70,9 @@ export interface ImportRequest {
   layout?: LayoutBrasindice;
   // Número da revista (ex.: "1093"). Compõe o caminho dos arquivos e o log.
   edicao?: string;
-  // Pasta de rede visível ao servidor RPW onde gravar .LST/.ERR/.JSON. Se
-  // omitida, o backend usa um fallback placeholder.
+  // Pasta onde o servidor RPW grava os .LST/.ERR. Precisa ser válida e gravável
+  // do lado do RPW (T:\..., V:\..., \\servidor\share\...). Se omitida, o backend
+  // cai em \\srvfs\informativo\BRASINDICE\SEM-EDICAO\.
   dirSaida?: string;
   // Expõe o "Simular?" do manual — quando true, não grava alterações.
   simular?: boolean;
@@ -96,6 +97,11 @@ export interface ImportResponse {
   idExec?: number | string;
   layout?: string;
   edicao?: string;
+  // Caminhos calculados pelo backend (mesma lógica do alvo RPW), já disponíveis
+  // na resposta do POST /importar — antes do primeiro GET /status.
+  pastaSaida?: string;
+  arquivoLst?: string;
+  arquivoErr?: string;
   error?: string;
   message?: string;
   RowErrors?: RowError[];
